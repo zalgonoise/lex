@@ -43,7 +43,7 @@ func (t TemplateItem[C, I]) String() string {
 		}
 		return ">>" + string(rs) + "<<"
 	case C(TokenError):
-		return ":ERR:"
+		return fmt.Sprintf("[error on line: %d]", t.Pos)
 	case C(TokenEOF):
 		return "" // placeholder action for EOF tokens
 	}
@@ -104,6 +104,8 @@ func stateLBRACE[C TextToken, T rune, I lex.Item[C, T]](l lex.Lexer[C, T, I]) le
 // stateError describes an errored state in the lexer / parser, ignoring this set of tokens and emitting an
 // error item
 func stateError[C TextToken, T rune, I lex.Item[C, T]](l lex.Lexer[C, T, I]) lex.StateFn[C, T, I] {
+	l.Backup()
+	l.Prev() // mark the opening bracket as erroring token
 	l.Emit((C)(TokenError))
 	return initState[C, T, I]
 }

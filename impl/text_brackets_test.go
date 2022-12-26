@@ -15,7 +15,7 @@ func TestRun(t *testing.T) {
 		}
 	})
 	t.Run("errored", func(t *testing.T) {
-		wants := "string with :ERR:"
+		wants := "string with [error on line: 12]"
 		input := `string with {template in it
 
 	`
