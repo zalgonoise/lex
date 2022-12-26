@@ -125,6 +125,7 @@ func (l *lexer[C, T, I]) NextItem() I {
 // It also sets the lexer's starting index to the current position index.
 func (l *lexer[C, T, I]) Emit(itemType C) {
 	l.items <- I{
+		Pos:   l.start,
 		Type:  itemType,
 		Value: l.input[l.start:l.pos],
 	}
