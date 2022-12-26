@@ -230,6 +230,9 @@ func (l *lexer[C, T, I]) Prev() T {
 		return eof
 	}
 	l.pos--
+	for l.pos < l.start {
+		l.start--
+	}
 	return l.input[l.pos]
 }
 
