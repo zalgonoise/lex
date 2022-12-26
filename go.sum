@@ -1,0 +1,4 @@
+github.com/zalgonoise/cur v0.0.0-20221219165328-e2c5939e583c h1:nUJ6aGWmH3raye2NgAc+0/5LZ/g69ta8HSqM3M9zRVs=
+github.com/zalgonoise/cur v0.0.0-20221219165328-e2c5939e583c/go.mod h1:nCikzsmXk+xXZS7tk0Q4wA6H5rYMqopV8C5dM0DuUeE=
+golang.org/x/exp v0.0.0-20221217163422-3c43f8badb15 h1:5oN1Pz/eDhCpbMbLstvIPa0b/BEQo6g6nwV3pLjfM6w=
+golang.org/x/exp v0.0.0-20221217163422-3c43f8badb15/go.mod h1:CxIveKay+FTh1D0yPZemJVgC/95VzuuOLq5Qi4xnoYc=
