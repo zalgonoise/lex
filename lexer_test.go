@@ -22,7 +22,7 @@ var (
 
 // initState describes the StateFn to kick off the lexer / parser. It is also the default fallback StateFn
 // for any other StateFn
-func initState[C uint, T rune, I lex.Item[C, T]](l lex.Lexer[C, T, I]) lex.StateFn[C, T, I] {
+func initState[C uint, T rune](l lex.Lexer[C, T]) lex.StateFn[C, T] {
 recLoop:
 	for {
 		switch l.Next() {
@@ -32,7 +32,7 @@ recLoop:
 				l.Emit((C)(tokenIdent))
 				l.Next()
 			}
-			return statePeriod[C, T, I]
+			return statePeriod[C, T]
 		case 0:
 			break recLoop
 		default:
@@ -46,7 +46,7 @@ recLoop:
 }
 
 // statePeriod describes the StateFn to read a period in the content, emitting it as a period item
-func statePeriod[C uint, T rune, I lex.Item[C, T]](l lex.Lexer[C, T, I]) lex.StateFn[C, T, I] {
+func statePeriod[C uint, T rune](l lex.Lexer[C, T]) lex.StateFn[C, T] {
 	l.Emit((C)(tokenPeriod))
 	// look into the current rune
 	switch l.Next() {
@@ -54,20 +54,20 @@ func statePeriod[C uint, T rune, I lex.Item[C, T]](l lex.Lexer[C, T, I]) lex.Sta
 		l.Emit((C)(tokenEOF))
 		return nil
 	default:
-		return initState[C, T, I]
+		return initState[C, T]
 	}
 }
 
 // stateError describes an errored state in the lexer / parser, ignoring this set of tokens and emitting an
 // error item
-func stateError[C uint, T rune, I lex.Item[C, T]](l lex.Lexer[C, T, I]) lex.StateFn[C, T, I] {
+func stateError[C uint, T rune](l lex.Lexer[C, T]) lex.StateFn[C, T] {
 	l.Emit((C)(tokenError))
 	l.Ignore()
-	return initState[C, T, I]
+	return initState[C, T]
 }
 
 func TestNewLexer(t *testing.T) {
-	l := lex.New(initState[uint, rune, lex.Item[uint, rune]], testInput1)
+	l := lex.New(initState[uint, rune], testInput1)
 	if l == nil {
 		t.Errorf("output lexer should not be nil")
 	}
@@ -75,7 +75,7 @@ func TestNewLexer(t *testing.T) {
 
 func TestLexer(t *testing.T) {
 	wants := "lexing.data."
-	l := lex.New(initState[uint, rune, lex.Item[uint, rune]], testInput2)
+	l := lex.New(initState[uint, rune], testInput2)
 	if l == nil {
 		t.Errorf("output lexer should not be nil")
 	}
@@ -120,7 +120,7 @@ func TestLexer(t *testing.T) {
 func TestNextItem(t *testing.T) {
 	t.Run("LastChar", func(t *testing.T) {
 		wants := "lexing data"
-		l := lex.New(initState[uint, rune, lex.Item[uint, rune]], testInput1)
+		l := lex.New(initState[uint, rune], testInput1)
 		if l == nil {
 			t.Errorf("output lexer should not be nil")
 		}
@@ -134,7 +134,7 @@ func TestNextItem(t *testing.T) {
 	})
 	t.Run("MiddleChar", func(t *testing.T) {
 		wants := "lexing"
-		l := lex.New(initState[uint, rune, lex.Item[uint, rune]], testInput2)
+		l := lex.New(initState[uint, rune], testInput2)
 		if l == nil {
 			t.Errorf("output lexer should not be nil")
 		}
@@ -148,7 +148,7 @@ func TestNextItem(t *testing.T) {
 	})
 	t.Run("FirstChar", func(t *testing.T) {
 		wants := "."
-		l := lex.New(initState[uint, rune, lex.Item[uint, rune]], testInput3)
+		l := lex.New(initState[uint, rune], testInput3)
 		if l == nil {
 			t.Errorf("output lexer should not be nil")
 		}
@@ -164,7 +164,7 @@ func TestNextItem(t *testing.T) {
 
 func TestPositionMethods(t *testing.T) {
 	// input: `lexing data.`
-	l := lex.New(initState[uint, rune, lex.Item[uint, rune]], testInput1)
+	l := lex.New(initState[uint, rune], testInput1)
 
 	if l.Len() != 12 {
 		t.Errorf("unexpected runes length: wanted %d ; got %d", 12, l.Len())
@@ -351,7 +351,7 @@ func TestPositionMethods(t *testing.T) {
 
 // acceptanceState describes the StateFn to kick off the lexer / parser with an acceptance func.
 // It is also the default fallback StateFn for any other StateFn
-func acceptanceState[C uint, T rune, I lex.Item[C, T]](l lex.Lexer[C, T, I]) lex.StateFn[C, T, I] {
+func acceptanceState[C uint, T rune](l lex.Lexer[C, T]) lex.StateFn[C, T] {
 	l.AcceptRun(func(item T) bool {
 		return item != '.' && item != 0
 	})
@@ -365,7 +365,7 @@ func acceptanceState[C uint, T rune, I lex.Item[C, T]](l lex.Lexer[C, T, I]) lex
 		if l.Width() > 0 {
 			l.Emit((C)(tokenIdent))
 		}
-		return acceptPeriod[C, T, I]
+		return acceptPeriod[C, T]
 	case 0:
 		l.Emit((C)(tokenEOF))
 		return nil
@@ -373,7 +373,7 @@ func acceptanceState[C uint, T rune, I lex.Item[C, T]](l lex.Lexer[C, T, I]) lex
 	return nil
 }
 
-func acceptPeriod[C uint, T rune, I lex.Item[C, T]](l lex.Lexer[C, T, I]) lex.StateFn[C, T, I] {
+func acceptPeriod[C uint, T rune](l lex.Lexer[C, T]) lex.StateFn[C, T] {
 	if l.Accept(func(item T) bool {
 		return item == '.'
 	}) {
@@ -405,7 +405,7 @@ func acceptPeriod[C uint, T rune, I lex.Item[C, T]](l lex.Lexer[C, T, I]) lex.St
 		l.Emit((C)(tokenEOF))
 		return nil
 	default:
-		return initState[C, T, I]
+		return initState[C, T]
 	}
 }
 
@@ -414,7 +414,7 @@ func TestAcceptanceMethods(t *testing.T) {
 	wantsString := "lexing"
 	wantsPeriod := "."
 	wantsString2 := "data"
-	l := lex.New(acceptanceState[uint, rune, lex.Item[uint, rune]], testInput2)
+	l := lex.New(acceptanceState[uint, rune], testInput2)
 
 	i := l.NextItem()
 	if i.Type != tokenIdent {
