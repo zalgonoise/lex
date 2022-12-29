@@ -1,13 +1,21 @@
 # lex
 
-*a generic lexer written in Go*
+*a generic lexer library written in Go*
 
 _______________
 
+## Concept
+
+`lex` is a lexer library for Go, based on the concept of the [`text/template`](https://pkg.go.dev/text/template) lexer, as a generic implementation. The logic behind this lexer is mostly based off of [Rob Pike](https://github.com/robpike)'s talk about [Lexical Scanning in Go](https://www.youtube.com/watch?v=HxaD_trXwRE), which is also seen in the standard library (in [`text/template/parse/lex.go`](https://cs.opensource.google/go/go/+/refs/tags/go1.19.4:src/text/template/parse/lex.go)).
+
+The lexer is a state-machine that analyzes input data (split into single units) by traversing the slice and classifying *blobs* of the slice (as lexemes) with a certain token. The lexer emits items, which are composed of three main elements:
+- the starting position in the slice where the lexeme starts
+- the (comparable type) token classifying this piece of data
+- a slice containing the actual data 
+
+The lexer is usually in-sync with a parser (also a state-machine, running in tandem with a lexer), that will consume the items emited by the lexer to build a parse tree. The parse tree, as the name implies, is a tree graph data structure that will layout the received tokens with a certain path / structure, with some logic in mind. It is finally able to output the processed tree as an output type, configurable by the developer, too.
+
 ## Overview
-
-`lex` is a lexer for Go, based on the concept of the [`text/template`](https://pkg.go.dev/text/template) lexer, as a generic implementation. The logic behind this lexer is mostly based off of [Rob Pike](https://github.com/robpike)'s talk about [Lexical Scanning in Go](https://www.youtube.com/watch?v=HxaD_trXwRE), which is also seen in the standard library (in [`text/template/parse/lex.go`](https://cs.opensource.google/go/go/+/refs/tags/go1.19.4:src/text/template/parse/lex.go)).
-
 
 The idea behind implementing a generic algorithm for a lexer came from trying to build a graph (data structure) representing the logic blocks in a Go file. Watching the talk above was a breath of fresh air when it came to the design of the lexer and its simple approach. So, it would be nice to leverage this algorithm for the Go code graph idea from before. By making the logic generic, one could implement an `Item` type to hold a defined token type, and a set of (any type of) values and `StateFn` state-functions to tokenize input data. In concept this works for any given type, as the point is to label elements of a slice with identifying tokens, that will be processed into a parse tree (with a specific parser implementation).
 
