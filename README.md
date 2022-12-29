@@ -56,7 +56,7 @@ The point to the StateFn is to keep the Lexer in control of the state, and the S
 //
 // It returns another StateFn or nil, as it consumes each token with a certain logic applied,
 // passing along the lexing / parsing to the next StateFn
-type StateFn[C comparable, T any, I Item[C, T]] func(l Lexer[C, T, I]) StateFn[C, T, I]
+type StateFn[C comparable, T any] func(l Lexer[C, T]) StateFn[C, T]
 ```
 
 #### Lexer
@@ -77,7 +77,7 @@ The methods in the Lexer will be covered individually below, as well as the desi
 //
 // Its `Emit()` method pushes items into the stack to be returned, and its `Accept()`,
 // `Check()` and `AcceptRun()` methods act as verifiers for a (set of) token(s)
-type Lexer[C comparable, T any, I Item[C, T]] interface {
+type Lexer[C comparable, T any] interface {
 
 	// Cursor navigates through a slice in a controlled manner, allowing the
 	// caller to move forward, backwards, and jump around the slice as they need
@@ -90,7 +90,7 @@ type Lexer[C comparable, T any, I Item[C, T]] interface {
 	//
 	// Note that multiple calls to `NextItem()` should be made when tokenizing input data;
 	// usually in a for-loop while the output item is not EOF.
-	NextItem() I
+	NextItem() Item[C, T]
 
 	// Emit pushes the set of units identified by token `itemType` to the items channel,
 	// that returns it in the NextItem() method.
@@ -183,7 +183,7 @@ After defining the type, a (set of) `StateFn`(s) need to be created, in context 
 ```go
 // initState describes the StateFn to kick off the lexer. It is also the default fallback StateFn
 // for any other StateFn
-func initState[C TextToken, T rune, I lex.Item[C, T]](l lex.Lexer[C, T, I]) lex.StateFn[C, T, I] {
+func initState[C TextToken, T rune](l lex.Lexer[C, T]) lex.StateFn[C, T] {
 	l.AcceptRun(func(item T) bool {
 		return item != '{' && item != 0
 	})
@@ -195,7 +195,7 @@ func initState[C TextToken, T rune, I lex.Item[C, T]](l lex.Lexer[C, T, I]) lex.
 			l.Emit((C)(TokenIDENT))
 		}
 		l.Ignore()
-		return stateLBRACE[C, T, I]
+		return stateLBRACE[C, T]
 	default:
 		if l.Width() > 0 {
 			l.Emit((C)(TokenIDENT))
@@ -219,7 +219,7 @@ func initState[C TextToken, T rune, I lex.Item[C, T]](l lex.Lexer[C, T, I]) lex.
 
 ```go
 // stateLBRACE describes the StateFn to read the template content, emitting it as a template item
-func stateLBRACE[C TextToken, T rune, I lex.Item[C, T]](l lex.Lexer[C, T, I]) lex.StateFn[C, T, I] {
+func stateLBRACE[C TextToken, T rune](l lex.Lexer[C, T]) lex.StateFn[C, T] {
 	if l.Check(func(item T) bool {
 		return item == '{'
 	}) {
@@ -239,9 +239,9 @@ func stateLBRACE[C TextToken, T rune, I lex.Item[C, T]](l lex.Lexer[C, T, I]) le
 		}
 		l.Next() // skip this symbol
 		l.Ignore()
-		return initState[C, T, I]
+		return initState[C, T]
 	default:
-		return stateError[C, T, I]
+		return stateError[C, T]
 	}
 }
 ```
@@ -252,9 +252,11 @@ func stateLBRACE[C TextToken, T rune, I lex.Item[C, T]](l lex.Lexer[C, T, I]) le
 ```go
 // stateError describes an errored state in the lexer / parser, ignoring this set of tokens and emitting an
 // error item
-func stateError[C TextToken, T rune, I lex.Item[C, T]](l lex.Lexer[C, T, I]) lex.StateFn[C, T, I] {
+func stateError[C TextToken, T rune](l lex.Lexer[C, T]) lex.StateFn[C, T] {
+	l.Backup()
+	l.Prev() // mark the opening bracket as erroring token
 	l.Emit((C)(TokenError))
-	return initState[C, T, I]
+	return initState[C, T]
 }
 ```
 
@@ -269,8 +271,8 @@ Finally, the Lexer can be initialized with the `New` function, by supplying the 
 
 ```go
 // TextTemplateLexer creates a text template lexer based on the input slice of runes
-func TextTemplateLexer[C TextToken, T rune, I lex.Item[C, T]](input []T) lex.Lexer[C, T, I] {
-	return lex.New(initState[C, T, I], input)
+func TextTemplateLexer[C TextToken, T rune](input []T) lex.Lexer[C, T] {
+	return lex.New(initState[C, T], input)
 }
 ```
 
@@ -328,7 +330,7 @@ func (t TemplateItem[C, I]) String() string {
 		}
 		return ">>" + string(rs) + "<<"
 	case C(TokenError):
-		return ":ERR:"
+		return fmt.Sprintf("[error on line: %d]", t.Pos)
 	case C(TokenEOF):
 		return "" // placeholder action for EOF tokens
 	}
