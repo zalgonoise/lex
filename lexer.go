@@ -17,14 +17,17 @@ type Lexer[C comparable, T any] interface {
 	// caller to move forward, backwards, and jump around the slice as they need
 	cur.Cursor[T]
 
-	// NextItem processes the tokens sequentially, through the corresponding StateFn
+	// Emitter describes the behavior of an object that can emit lex.Items
+	//
+	// It contains a single method, NextItem, that processes the tokens sequentially
+	// through the corresponding StateFn
 	//
 	// As each item is processed, it is returned to the Lexer by `Emit()`, and
 	// finally returned to the caller.
 	//
 	// Note that multiple calls to `NextItem()` should be made when tokenizing input data;
 	// usually in a for-loop while the output item is not EOF.
-	NextItem() Item[C, T]
+	Emitter[C, T]
 
 	// Emit pushes the set of units identified by token `itemType` to the items channel,
 	// that returns it in the NextItem() method.
@@ -65,6 +68,18 @@ type Lexer[C comparable, T any] interface {
 	// Once it fails the verification, the cursor is rolledback once, leaving the caller at the unit
 	// that failed the verifFn
 	AcceptRun(verifFn func(item T) bool)
+}
+
+// Emitter describes the behavior of an object that can emit lex.Items
+type Emitter[C comparable, T any] interface {
+	// NextItem processes the tokens sequentially, through the corresponding StateFn
+	//
+	// As each item is processed, it is returned to the Lexer by `Emit()`, and
+	// finally returned to the caller.
+	//
+	// Note that multiple calls to `NextItem()` should be made when tokenizing input data;
+	// usually in a for-loop while the output item is not EOF.
+	NextItem() Item[C, T]
 }
 
 type lexer[C comparable, T any] struct {
