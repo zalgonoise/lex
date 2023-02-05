@@ -3,7 +3,6 @@ package lex
 import (
 	"io"
 
-	"github.com/zalgonoise/gbuf"
 	"github.com/zalgonoise/gio"
 )
 
@@ -45,6 +44,10 @@ func NewBuffer[C comparable, T any](
 
 // Size sets a custom buffer look-back size whenever an item is emited
 func (l *LexBuffer[C, T]) Size(maxSize int) {
+	if maxSize < 0 {
+		l.bufferLookbackSize = 0
+		return
+	}
 	l.bufferLookbackSize = maxSize
 }
 
@@ -246,7 +249,7 @@ func (l *LexBuffer[C, T]) Peek() T {
 	return next
 }
 
-// Head returns to the beginning of the slice, setting both lexer's start and position
+// Head returns to the beginning of the buffer, setting both lexer's start and position
 // values to zero
 func (l *LexBuffer[C, T]) Head() T {
 	l.pos = 0
@@ -254,12 +257,10 @@ func (l *LexBuffer[C, T]) Head() T {
 	return l.buf[l.pos]
 }
 
-// Tail jumps to the end of the slice, setting both lexer's start and position values to
+// Tail jumps to the end of the buffer, setting both lexer's start and position values to
 // the last item in the input
 func (l *LexBuffer[C, T]) Tail() T {
-	buf := gbuf.NewBuffer(l.buf)
-	n, err := buf.ReadFrom(l.input)
-	if err != nil || n == 0 {
+	if len(l.buf) == 0 {
 		var eof T
 		return eof
 	}
@@ -269,7 +270,7 @@ func (l *LexBuffer[C, T]) Tail() T {
 	return l.buf[l.pos]
 }
 
-// Idx jumps to the specific index `idx` in the slice
+// Idx jumps to the specific index `idx` in the buffer
 //
 // If the input index is below 0, the zero-value EOF token is returned
 // If the input index is greater than the size of the input, the
@@ -296,7 +297,7 @@ func (l *LexBuffer[C, T]) Idx(idx int) T {
 	return l.buf[l.pos]
 }
 
-// Offset advances or rewinds `amount` steps in the slice, be it a positive or negative
+// Offset advances or rewinds `amount` steps in the buffer, be it a positive or negative
 // input.
 //
 // If the result offset is below 0, the zero-value EOF token is returned
