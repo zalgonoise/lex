@@ -133,6 +133,41 @@ type Emitter[C comparable, T any] interface {
 }
 ```
 
+##### Lex
+
+This is a simple lexer that will consume a slice of T (any type). It's the simplest implementation that goes in-line with the standard library implementations of `text/template` and Go tokens and is most efficient on bounded / buffered data:
+
+```go
+// Lex implements the Lexer interface, by accepting a slice of a type
+type Lex[C comparable, T any] struct {
+	input []T
+	start int
+	pos   int
+	state StateFn[C, T]
+	items chan Item[C, T]
+}
+```
+
+##### LexBuffer
+
+This is a lexer implementation prepared for data streams, to generate tokens as available from the reader. It uses a generic reader (`gio.Reader[T]`) to continuously consume tokens.
+
+
+
+**TODO:** This implementation is not yet optimized for perfomance on larger data sets, as it keeps all items in a buffer. Ideally it should reset its buffer once an item is emitted (or in other words, when the lexer moves on to the next token, it should discard its current buffer)
+
+```go
+// LexBuffer implements the Lexer interface, by accepting a gio.Reader of any type
+type LexBuffer[C comparable, T any] struct {
+	input gio.Reader[T]
+	buf   []T
+	start int
+	pos   int
+	state StateFn[C, T]
+	items chan Item[C, T]
+}
+```
+
 #### Item
 
 An Item is an object holding a token and a set of values (lexemes) corresponding to that token. It is a key-value data structure, where the value-half is a slice of any type -- which could be populated with any number of items.
@@ -146,6 +181,8 @@ type Item[T comparable, V any] struct {
 	Value []V
 }
 ```
+
+
 
 #### StateFn
 
@@ -477,6 +514,36 @@ func Run[C TextToken, T rune, R string](s []T) (R, error) {
 }
 ```
 
+## 
+
 ## Benchmarks
 
-Performance is critical in a lexer or parser. I will add benchmarks (and performance improvements) very soon :)
+### Lex benchmark
+
+```
+goos: linux
+goarch: amd64
+pkg: github.com/zalgonoise/lex/example/simple-template
+cpu: AMD Ryzen 3 PRO 3300U w/ Radeon Vega Mobile Gfx
+PASS
+benchmark                    iter       time/iter   bytes alloc         allocs
+---------                    ----       ---------   -----------         ------
+BenchmarkLexer/Simple-4    817377   2342.00 ns/op      400 B/op   13 allocs/op
+BenchmarkLexer/Complex-4   116460   9643.00 ns/op     1040 B/op   53 allocs/op
+ok      github.com/zalgonoise/lex/example/simple-template       3.166s
+```
+
+### LexBuffer benchmark
+
+```
+goos: linux
+goarch: amd64
+pkg: github.com/zalgonoise/lex/example/buffered-template
+cpu: AMD Ryzen 3 PRO 3300U w/ Radeon Vega Mobile Gfx
+PASS
+benchmark                    iter        time/iter   bytes alloc          allocs
+---------                    ----        ---------   -----------          ------
+BenchmarkLexer/Simple-4    410790    4267.00 ns/op     4580 B/op    26 allocs/op
+BenchmarkLexer/Complex-4    78102   15497.00 ns/op     5592 B/op   159 allocs/op
+ok      github.com/zalgonoise/lex/example/buffered-template     3.159s
+```
