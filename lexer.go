@@ -82,7 +82,7 @@ type Emitter[C comparable, T any] interface {
 	NextItem() Item[C, T]
 }
 
-type lexer[C comparable, T any] struct {
+type Lex[C comparable, T any] struct {
 	input []T
 	start int
 	pos   int
@@ -90,21 +90,22 @@ type lexer[C comparable, T any] struct {
 	items chan Item[C, T]
 }
 
+var _ Lexer[uint8, any] = &Lex[uint8, any]{}
+
 // New creates a new lexer with the base / starting StateFn and input data
 func New[C comparable, T any](
 	initFn StateFn[C, T],
 	input []T,
-) Lexer[C, T] {
+) *Lex[C, T] {
 	if len(input) == 0 {
 		return nil
 	}
 
-	l := &lexer[C, T]{
+	return &Lex[C, T]{
 		input: input,
 		state: initFn,
 		items: make(chan Item[C, T], 2),
 	}
-	return l
 }
 
 // NextItem processes the tokens sequentially, through the corresponding StateFn
@@ -114,7 +115,7 @@ func New[C comparable, T any](
 //
 // Note that multiple calls to `NextItem()` should be made when tokenizing input data;
 // usually in a for-loop while the output item is not EOF.
-func (l *lexer[C, T]) NextItem() Item[C, T] {
+func (l *Lex[C, T]) NextItem() Item[C, T] {
 	var next Item[C, T]
 	for {
 		select {
@@ -138,7 +139,7 @@ func (l *lexer[C, T]) NextItem() Item[C, T] {
 // starting index to the current position index.
 //
 // It also sets the lexer's starting index to the current position index.
-func (l *lexer[C, T]) Emit(itemType C) {
+func (l *Lex[C, T]) Emit(itemType C) {
 	l.items <- Item[C, T]{
 		Pos:   l.start,
 		Type:  itemType,
@@ -148,28 +149,28 @@ func (l *lexer[C, T]) Emit(itemType C) {
 }
 
 // Ignore will set the starting point as the current position, ignoring any preceeding units
-func (l *lexer[C, T]) Ignore() {
+func (l *Lex[C, T]) Ignore() {
 	l.start = l.pos
 }
 
 // Backup will rewind the index for the width of the current item
-func (l *lexer[C, T]) Backup() {
+func (l *Lex[C, T]) Backup() {
 	l.pos = l.start
 }
 
 // Width returns the size of the set of units ready to be emitted with a token
-func (l *lexer[C, T]) Width() int {
+func (l *Lex[C, T]) Width() int {
 	return l.pos - l.start
 }
 
 // Start returns the current starting-point index for when an item is emitted
-func (l *lexer[C, T]) Start() int {
+func (l *Lex[C, T]) Start() int {
 	return l.start
 }
 
 // Check passes the current token through the input `verifFn` function as a validator, returning
 // its result
-func (l *lexer[C, T]) Check(verifFn func(item T) bool) bool {
+func (l *Lex[C, T]) Check(verifFn func(item T) bool) bool {
 	return verifFn(l.Cur())
 }
 
@@ -179,7 +180,7 @@ func (l *lexer[C, T]) Check(verifFn func(item T) bool) bool {
 // If the validation passes, the cursor has moved one step forward (the unit was consumed)
 //
 // If the validation fails, the cursor rolls back one step
-func (l *lexer[C, T]) Accept(verifFn func(item T) bool) bool {
+func (l *Lex[C, T]) Accept(verifFn func(item T) bool) bool {
 	if ok := verifFn(l.Next()); ok {
 		return true
 	}
@@ -192,17 +193,16 @@ func (l *lexer[C, T]) Accept(verifFn func(item T) bool) bool {
 //
 // Once it fails the verification, the cursor is rolledback once, leaving the caller at the unit
 // that failed the verifFn
-func (l *lexer[C, T]) AcceptRun(verifFn func(item T) bool) {
+func (l *Lex[C, T]) AcceptRun(verifFn func(item T) bool) {
 	for verifFn(l.Next()) {
 	}
 	l.Prev()
-	return
 }
 
 // Cur returns the same indexed item in the slice
 //
 // If the position is already over the size of the input, the zero-value EOF token is returned
-func (l *lexer[C, T]) Cur() T {
+func (l *Lex[C, T]) Cur() T {
 	if l.pos >= len(l.input) {
 		var eof T
 		return eof
@@ -211,12 +211,12 @@ func (l *lexer[C, T]) Cur() T {
 }
 
 // Pos returns the current position in the cursor
-func (l *lexer[C, T]) Pos() int {
+func (l *Lex[C, T]) Pos() int {
 	return l.pos
 }
 
 // Len returns the total size of the underlying slice
-func (l *lexer[C, T]) Len() int {
+func (l *Lex[C, T]) Len() int {
 	return len(l.input)
 }
 
@@ -225,7 +225,7 @@ func (l *lexer[C, T]) Len() int {
 //
 // If the position is bigger or equal to the size of the input data, the position
 // value is NOT incremented and the zero-value EOF token is returned
-func (l *lexer[C, T]) Next() T {
+func (l *Lex[C, T]) Next() T {
 	if l.pos >= len(l.input) {
 		var eof T
 		return eof
@@ -239,7 +239,7 @@ func (l *lexer[C, T]) Next() T {
 //
 // If the new position is less than zero, the position value is NOT decremented
 // and the zero-value EOF token is returned
-func (l *lexer[C, T]) Prev() T {
+func (l *Lex[C, T]) Prev() T {
 	if l.pos-1 < 0 {
 		var eof T
 		return eof
@@ -254,7 +254,7 @@ func (l *lexer[C, T]) Prev() T {
 // Peek returns the next indexed item without advancing the cursor
 //
 // If the next token overflows the input's index, the zero-value EOF token is returned
-func (l *lexer[C, T]) Peek() T {
+func (l *Lex[C, T]) Peek() T {
 	if l.pos+1 >= len(l.input) {
 		var eof T
 		return eof
@@ -264,7 +264,7 @@ func (l *lexer[C, T]) Peek() T {
 
 // Head returns to the beginning of the slice, setting both lexer's start and position
 // values to zero
-func (l *lexer[C, T]) Head() T {
+func (l *Lex[C, T]) Head() T {
 	l.pos = 0
 	l.start = 0
 	return l.input[l.pos]
@@ -272,7 +272,7 @@ func (l *lexer[C, T]) Head() T {
 
 // Tail jumps to the end of the slice, setting both lexer's start and position values to
 // the last item in the input
-func (l *lexer[C, T]) Tail() T {
+func (l *Lex[C, T]) Tail() T {
 	l.pos = len(l.input) - 1
 	l.start = len(l.input) - 1
 	return l.input[l.pos]
@@ -283,7 +283,7 @@ func (l *lexer[C, T]) Tail() T {
 // If the input index is below 0, the zero-value EOF token is returned
 // If the input index is greater than the size of the input, the
 // zero-value EOF token is returned
-func (l *lexer[C, T]) Idx(idx int) T {
+func (l *Lex[C, T]) Idx(idx int) T {
 	if idx < 0 {
 		var eof T
 		return eof
@@ -305,7 +305,7 @@ func (l *lexer[C, T]) Idx(idx int) T {
 // If the result offset is below 0, the zero-value EOF token is returned
 // If the result offset is greater than the size of the slice, the
 // zero-value EOF token is returned
-func (l *lexer[C, T]) Offset(amount int) T {
+func (l *Lex[C, T]) Offset(amount int) T {
 	if l.pos+amount < 0 {
 		var eof T
 		return eof
@@ -327,7 +327,7 @@ func (l *lexer[C, T]) Offset(amount int) T {
 // If the input index is below 0, the zero-value EOF token is returned
 // If the input index is greater than the size of the input, the
 // zero-value EOF token is returned
-func (l *lexer[C, T]) PeekIdx(idx int) T {
+func (l *Lex[C, T]) PeekIdx(idx int) T {
 	if idx >= len(l.input) {
 		var eof T
 		return eof
@@ -345,7 +345,7 @@ func (l *lexer[C, T]) PeekIdx(idx int) T {
 // If the result offset is below 0, the zero-value EOF token is returned
 // If the result offset is greater than the size of the slice, the
 // zero-value EOF token is returned
-func (l *lexer[C, T]) PeekOffset(amount int) T {
+func (l *Lex[C, T]) PeekOffset(amount int) T {
 	if l.pos+amount >= len(l.input) || l.pos+amount < 0 {
 		var eof T
 		return eof
@@ -358,7 +358,7 @@ func (l *lexer[C, T]) PeekOffset(amount int) T {
 // If the input start index is below 0, the starting point will be set to zero
 // If the input end index is greater than the size of the input, the
 // ending point will be set to the size of the input.
-func (l *lexer[C, T]) Extract(start, end int) []T {
+func (l *Lex[C, T]) Extract(start, end int) []T {
 	if start < 0 {
 		start = 0
 	}
