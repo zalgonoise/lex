@@ -82,6 +82,7 @@ type Emitter[C comparable, T any] interface {
 	NextItem() Item[C, T]
 }
 
+// Lex implements the Lexer interface, by accepting a slice of a type
 type Lex[C comparable, T any] struct {
 	input []T
 	start int

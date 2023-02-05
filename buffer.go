@@ -9,6 +9,7 @@ import (
 
 const bufferInitSize = 1024
 
+// LexBuffer implements the Lexer interface, by accepting a gio.Reader of any type
 type LexBuffer[C comparable, T any] struct {
 	input gio.Reader[T]
 	buf   []T
