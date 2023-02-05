@@ -13,7 +13,7 @@ func Run[C TextToken, T rune, R string](s []T) (R, error) {
 	var rootEOF C
 
 	reader := (gio.Reader[T])(gbuf.NewReader(s))
-	l := (lex.Lexer[C, T])(lex.NewBuffer(initState[C, T], reader))
+	l := (lex.Emitter[C, T])(lex.NewBuffer(initState[C, T], reader))
 	t := parse.New(l, initParse[C, T], rootEOF)
 	t.Parse()
 	return processFn[C, T, R](t)
