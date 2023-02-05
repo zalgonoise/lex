@@ -7,16 +7,21 @@ import (
 	"github.com/zalgonoise/gio"
 )
 
-const bufferInitSize = 1024
+const (
+	bufferInitCap      = 1024
+	bufferCapThres     = 96
+	bufferLookbackSize = 5
+)
 
 // LexBuffer implements the Lexer interface, by accepting a gio.Reader of any type
 type LexBuffer[C comparable, T any] struct {
-	input gio.Reader[T]
-	buf   []T
-	start int
-	pos   int
-	state StateFn[C, T]
-	items chan Item[C, T]
+	input              gio.Reader[T]
+	buf                []T
+	start              int
+	pos                int
+	state              StateFn[C, T]
+	items              chan Item[C, T]
+	bufferLookbackSize int
 }
 
 var _ Lexer[uint8, any] = &LexBuffer[uint8, any]{}
@@ -30,11 +35,17 @@ func NewBuffer[C comparable, T any](
 	}
 
 	return &LexBuffer[C, T]{
-		input: input,
-		buf:   make([]T, 0, bufferInitSize),
-		state: initFn,
-		items: make(chan Item[C, T], 2),
+		input:              input,
+		buf:                make([]T, 0, bufferInitCap),
+		state:              initFn,
+		items:              make(chan Item[C, T], 2),
+		bufferLookbackSize: bufferLookbackSize,
 	}
+}
+
+// Size sets a custom buffer look-back size whenever an item is emited
+func (l *LexBuffer[C, T]) Size(maxSize int) {
+	l.bufferLookbackSize = maxSize
 }
 
 // NextItem processes the tokens sequentially, through the corresponding StateFn
@@ -75,6 +86,24 @@ func (l *LexBuffer[C, T]) Emit(itemType C) {
 		Value: l.buf[l.start:l.pos],
 	}
 	l.start = l.pos
+
+	// reset the buffer with up to `bufferLookbackSize` items of look-back
+	if len(l.buf) > l.bufferLookbackSize {
+		l.start = l.bufferLookbackSize - 1
+		l.pos = l.bufferLookbackSize - 1
+		l.buf = l.buf[len(l.buf)-l.bufferLookbackSize:]
+
+		// look into the buffer's remaining capacity
+		// if below the set capacity threshold, use a new buffer
+		//
+		// saves over 200 allocs/op on `SqueezeTheBuffer` test by avoiding
+		// repeated calls to grow the slice
+		if cap(l.buf) < bufferCapThres {
+			b := make([]T, l.bufferLookbackSize, bufferInitCap)
+			copy(b, l.buf)
+			l.buf = b
+		}
+	}
 }
 
 // Ignore will set the starting point as the current position, ignoring any preceeding units
