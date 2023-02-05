@@ -115,18 +115,18 @@ func New[C comparable, T any](
 // Note that multiple calls to `NextItem()` should be made when tokenizing input data;
 // usually in a for-loop while the output item is not EOF.
 func (l *lexer[C, T]) NextItem() Item[C, T] {
+	var next Item[C, T]
 	for {
 		select {
-		case item := <-l.items:
-			return item
+		case next = <-l.items:
+			return next
 		default:
 			if l.state != nil {
 				l.state = l.state(l)
 				continue
 			}
 			close(l.items)
-			var eof Item[C, T]
-			return eof
+			return next
 		}
 	}
 }
