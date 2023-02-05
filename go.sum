@@ -1,4 +1,8 @@
 github.com/zalgonoise/cur v0.0.0-20221228011751-cdba7832420f h1:E8Jhx3jt20u6OZ9CNgoz/h1OfuxinQDashwlA0/yxOk=
 github.com/zalgonoise/cur v0.0.0-20221228011751-cdba7832420f/go.mod h1:nCikzsmXk+xXZS7tk0Q4wA6H5rYMqopV8C5dM0DuUeE=
+github.com/zalgonoise/gbuf v0.0.0-20230101003923-5929d4c4a7d0 h1:bQ3SemLQGVTXbrXoHDEuGAL4Sh6Qqu5sNna/392oHMU=
+github.com/zalgonoise/gbuf v0.0.0-20230101003923-5929d4c4a7d0/go.mod h1:84a9vj5Aqaa3bSYf2Woek/20VV0UauZf6CabYdJaCYM=
+github.com/zalgonoise/gio v0.0.0-20221231224511-990149dd48ad h1:rv93oyGpIyLYOzo8HFjBtpHejlnPagQjqU/mAPoMLmI=
+github.com/zalgonoise/gio v0.0.0-20221231224511-990149dd48ad/go.mod h1:nhc82H2KvRf8/28o3RGBnJM/k7NapcDGPegqGIOqATY=
 github.com/zalgonoise/parse v0.0.0-20221230005704-615ee0179530 h1:0ftvBWmT49rSeroOQhQbYx4TzVYlzevwzked087p7r0=
 github.com/zalgonoise/parse v0.0.0-20221230005704-615ee0179530/go.mod h1:+vqqzO51lPSnh4sU7Ol6Nbedjf2uNPY2ez57TJfm1MU=
