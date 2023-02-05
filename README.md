@@ -169,6 +169,10 @@ type LexBuffer[C comparable, T any] struct {
 
 // Size sets a custom buffer look-back size whenever an item is emited
 func (l *LexBuffer[C, T]) Size(maxSize int) {
+	if maxSize < 0 {
+		l.bufferLookbackSize = 0
+		return
+	}
 	l.bufferLookbackSize = maxSize
 }
 ```
@@ -207,7 +211,7 @@ type StateFn[C comparable, T any] func(l Lexer[C, T]) StateFn[C, T]
 
 ## Implementing
 
-**Note**: *Example and tests can be found in the [`impl`](./impl/) directory; from the lexer to the parser*
+**Note**: *Examples and tests can be found in the [`example`](./example/) directory; from the lexer to the parser*
 
 ________
 
