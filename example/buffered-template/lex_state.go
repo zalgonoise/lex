@@ -56,15 +56,13 @@ func stateIDENT[C TextToken, T rune](l lex.Lexer[C, T]) lex.StateFn[C, T] {
 
 // stateLBRACE describes the StateFn to check for and emit an LBRACE token
 func stateLBRACE[C TextToken, T rune](l lex.Lexer[C, T]) lex.StateFn[C, T] {
-	l.Next() // skip this symbol
-	l.Emit((C)(TokenLBRACE))
+	l.Emit((C)(TokenLBRACE)) // skip this symbol
 	return initState[C, T]
 }
 
 // stateRBRACE describes the StateFn to check for and emit an RBRACE token
 func stateRBRACE[C TextToken, T rune](l lex.Lexer[C, T]) lex.StateFn[C, T] {
-	l.Next() // skip this symbol
-	l.Emit((C)(TokenRBRACE))
+	l.Emit((C)(TokenRBRACE)) // skip this symbol
 	return initState[C, T]
 }
 
