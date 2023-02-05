@@ -152,19 +152,24 @@ type Lex[C comparable, T any] struct {
 
 This is a lexer implementation prepared for data streams, to generate tokens as available from the reader. It uses a generic reader (`gio.Reader[T]`) to continuously consume tokens.
 
+It also allows defining a custom look-back size for its inner buffer:
 
-
-**TODO:** This implementation is not yet optimized for perfomance on larger data sets, as it keeps all items in a buffer. Ideally it should reset its buffer once an item is emitted (or in other words, when the lexer moves on to the next token, it should discard its current buffer)
 
 ```go
 // LexBuffer implements the Lexer interface, by accepting a gio.Reader of any type
 type LexBuffer[C comparable, T any] struct {
-	input gio.Reader[T]
-	buf   []T
-	start int
-	pos   int
-	state StateFn[C, T]
-	items chan Item[C, T]
+	input              gio.Reader[T]
+	buf                []T
+	start              int
+	pos                int
+	state              StateFn[C, T]
+	items              chan Item[C, T]
+	bufferLookbackSize int
+}
+
+// Size sets a custom buffer look-back size whenever an item is emited
+func (l *LexBuffer[C, T]) Size(maxSize int) {
+	l.bufferLookbackSize = maxSize
 }
 ```
 
@@ -535,15 +540,20 @@ ok      github.com/zalgonoise/lex/example/simple-template       3.166s
 
 ### LexBuffer benchmark
 
+> `SqueezeTheBuffer` test will take a repetition of the sample template that is 3615 characters in size, to test the efficacy of the buffer approach when handling larger sets, namely for capacity / growth control.
+>
+> This buffer will use the default values of 1025 for the initial buffer capacity, and creating a new buffer whenever the capacity is below 96. 
+
 ```
 goos: linux
 goarch: amd64
 pkg: github.com/zalgonoise/lex/example/buffered-template
 cpu: AMD Ryzen 3 PRO 3300U w/ Radeon Vega Mobile Gfx
 PASS
-benchmark                    iter        time/iter   bytes alloc          allocs
----------                    ----        ---------   -----------          ------
-BenchmarkLexer/Simple-4    410790    4267.00 ns/op     4580 B/op    26 allocs/op
-BenchmarkLexer/Complex-4    78102   15497.00 ns/op     5592 B/op   159 allocs/op
-ok      github.com/zalgonoise/lex/example/buffered-template     3.159s
+benchmark                             iter         time/iter   bytes alloc           allocs
+---------                             ----         ---------   -----------           ------
+BenchmarkLexer/Simple-4             274857     5977.00 ns/op     4580 B/op     26 allocs/op
+BenchmarkLexer/Complex-4             61220    20332.00 ns/op     5592 B/op    159 allocs/op
+BenchmarkLexer/SqueezeTheBuffer-4     2644   509741.00 ns/op    53460 B/op   5019 allocs/op
+ok      github.com/zalgonoise/lex/example/buffered-template     4.554s
 ```
