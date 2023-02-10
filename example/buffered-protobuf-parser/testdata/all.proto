@@ -1,0 +1,34 @@
+syntax = "proto3";
+
+package generic;
+
+enum Status {
+    not_ok = 0;
+    ok = 1;
+}
+
+
+message Generic {
+    message Short {
+        bool ok = 1;
+        bytes value = 2;
+    }
+    bool bool_field = 1;
+    uint32 unsigned_32 = 2;
+    uint64 unsigned_64 = 3;
+    sint32 signed_32 = 4;
+    sint64 signed_64 = 5;
+    int32 int_32 = 6;
+    int64 int_64 = 7;
+    fixed32 fixed_32 = 8;
+    fixed64 fixed_64 = 9;
+    sfixed32 sfixed_32 = 10;
+    sfixed64 sfixed_64 = 11;
+    double float_32 = 12;
+    float float_64 = 13;
+    string varchar = 14;
+    bytes byte_slice = 15;
+    repeated uint64 int_slice = 16;
+    Status enum_field = 17;
+    repeated Short inner_struct = 18;    
+}
