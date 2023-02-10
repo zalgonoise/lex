@@ -88,24 +88,27 @@ func (l *LexBuffer[C, T]) Emit(itemType C) {
 		Type:  itemType,
 		Value: l.buf[l.start:l.pos],
 	}
-	l.start = l.pos
+	// cutoff the buffer's head up to the current position
+	l.buf = l.buf[l.pos:]
+	l.start = 0
+	l.pos = 0
 
-	// reset the buffer with up to `bufferLookbackSize` items of look-back
-	if len(l.buf) > l.bufferLookbackSize {
-		l.start = l.bufferLookbackSize - 1
-		l.pos = l.bufferLookbackSize - 1
-		l.buf = l.buf[len(l.buf)-l.bufferLookbackSize:]
-
-		// look into the buffer's remaining capacity
-		// if below the set capacity threshold, use a new buffer
-		//
-		// saves over 200 allocs/op on `SqueezeTheBuffer` test by avoiding
-		// repeated calls to grow the slice
-		if cap(l.buf) < bufferCapThres {
-			b := make([]T, l.bufferLookbackSize, bufferInitCap)
+	// look into the buffer's remaining capacity
+	// if below the set capacity threshold, use a new buffer
+	//
+	// saves over 200 allocs/op on `SqueezeTheBuffer` test by avoiding
+	// repeated calls to grow the slice
+	if cap(l.buf) < bufferCapThres {
+		if len(l.buf)-l.bufferLookbackSize < 0 {
+			b := make([]T, len(l.buf), bufferInitCap)
 			copy(b, l.buf)
 			l.buf = b
+			return
 		}
+
+		b := make([]T, l.bufferLookbackSize, bufferInitCap)
+		copy(b, l.buf[len(l.buf)-l.bufferLookbackSize:])
+		l.buf = b
 	}
 }
 
